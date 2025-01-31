@@ -1309,20 +1309,26 @@ If the source code cannot be found, return the sexp used."
   "If SYM has version information, format and return it.
 Return nil otherwise."
   (when (symbolp sym)
-    (let ((package-version
-           (get sym 'custom-package-version))
-          (emacs-version
-           (get sym 'custom-version)))
-      (cond
-       (package-version
-        (format
-         "This variable was added, or its default value changed, in %s version %s."
-         (car package-version)
-         (cdr package-version)))
-       (emacs-version
+    (string-join
+     (list
+      (when-let* ((package-version
+                   (get sym 'custom-package-version)))
+        (pcase-let ((`(,package . ,version) (if (listp package-version)
+                                                package-version
+                                              `(,(file-name-base
+                                                  (symbol-file sym))
+                                                .
+                                                ,package-version))))
+          (format
+           "This variable was added, or its default value changed, in %s version %s."
+           package
+           version)))
+      (when-let* ((emacs-version
+                   (get sym 'custom-version)))
         (format
          "This variable was added, or its default value changed, in Emacs %s."
-         emacs-version))))))
+         emacs-version)))
+     "\n\n")))
 
 (defun helpful--library-path (library-name)
   "Find the absolute path for the source of LIBRARY-NAME.
